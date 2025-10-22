@@ -163,8 +163,12 @@ export default function Home() {
       const { newRinshan, tile: rinshanTile } = logic.drawFromRinshan(prev.rinshanTiles);
 
       // Add new Dora indicator *after* drawing Rinshan
-      const newDoraIndicator = prev.wangpai.length >= (5 + newKanMelds.length) ? prev.wangpai[4 + newKanMelds.length - 1] : null;
-      const newUraDoraIndicator = prev.wangpai.length >= (6 + newKanMelds.length) ? prev.wangpai[5 + newKanMelds.length - 1] : null;
+      const revealedDoraCount = prev.doraIndicators.length; // Number of currently shown indicators (starts at 1)
+      const doraIndicatorIndexToAdd = 4 + revealedDoraCount * 2; // Index for the *next* Dora indicator (1st Kan: 4+1*2=6, 2nd Kan: 4+2*2=8)
+      const uraIndicatorIndexToAdd = 5 + revealedDoraCount * 2; // Index for the *next* Ura indicator (1st Kan: 5+1*2=7, 2nd Kan: 5+2*2=9)
+
+      const newDoraIndicator = prev.wangpai.length > doraIndicatorIndexToAdd ? prev.wangpai[doraIndicatorIndexToAdd] : null;
+      const newUraDoraIndicator = prev.wangpai.length > uraIndicatorIndexToAdd ? prev.wangpai[uraIndicatorIndexToAdd] : null;
 
       const newDoraIndicators = newDoraIndicator ? [...prev.doraIndicators, newDoraIndicator] : prev.doraIndicators;
       const newUraDoraIndicators = newUraDoraIndicator ? [...prev.uraDoraIndicators, newUraDoraIndicator] : prev.uraDoraIndicators;
@@ -282,6 +286,7 @@ export default function Home() {
         <WinModal
           result={winResult}
           hand={drawnTile ? [...hand, drawnTile] : hand} // Show winning tile in modal hand
+          kanMelds={kanMelds}
           doraIndicators={doraIndicators}
           uraDoraIndicators={uraDoraIndicators}
           isRiichi={gameState.isRiichi}
