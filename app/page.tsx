@@ -14,7 +14,7 @@ const initialGameState: GameState = {
   doraIndicators: [], uraDoraIndicators: [], dora: [], kanMelds: [],
   drawnTile: null, isGameOver: true, isRiichi: false, isIppatsu: false,
   isRinshan: false, isRiichiDeclaration: false, validRiichiDiscards: new Set(),
-  gameMessage: '新しいゲームを開始してください。', winResult: null,
+  gameMessage: 'ボタンを押してゲームを開始してください。', winResult: null,
 };
 
 export default function Home() {
@@ -247,7 +247,7 @@ export default function Home() {
   return (
     <main className="mahjong-table text-white container mx-auto p-4 flex flex-col min-h-screen">
       <header className="text-center mb-2">
-        <h1 className="text-3xl font-bold">一人麻雀 (TypeScript版)</h1>
+        <h1 className="text-3xl font-bold">一人麻雀</h1>
         <p id="wall-count" className="text-lg mt-1">山の残り牌: {wall.length}</p>
         <p id="game-message" className="text-amber-300 font-bold h-6">{gameMessage}</p>
       </header>
