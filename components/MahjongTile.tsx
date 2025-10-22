@@ -19,7 +19,7 @@ const MahjongTile: React.FC<MahjongTileProps> = ({ tile, onClick, isDiscarded, i
     const tileClasses = [
         "relative", "inline-flex", "items-center", "justify-center",
         "bg-transparent", "select-none", "transition-transform", "duration-100",
-        isDiscarded ? "w-8 h-12" : (isKan ? "w-9 h-14" : "w-12 h-[72px]"),
+        isDiscarded ? "w-8 h-12" : (isKan ? "w-11 h-18" : "w-12 h-[72px]"),
         onClick ? "cursor-pointer hover:-translate-y-1" : "cursor-default",
     ].join(' ');
 
