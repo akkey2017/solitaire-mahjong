@@ -15,16 +15,20 @@ interface HandDisplayProps {
 const HandDisplay: React.FC<HandDisplayProps> = ({ hand, drawnTile, kanMelds, dora, isRiichiDeclaration, validRiichiDiscards, onTileClick }) => {
     return (
         <div className="flex justify-center items-end">
+            {/* Kan Melds */}
             <div className="flex justify-center items-end space-x-2 mr-4">
                 {kanMelds.map((meld, meldIndex) => (
                     <div key={meldIndex} className="flex">
-                        {meld.map((tile, tileIndex) => (
-                            <MahjongTile key={`${tile}-${tileIndex}`} tile={tile} isKan />
-                        ))}
+                        {/* Display Ankan with ends face down */}
+                        <MahjongTile tile="back" isKan />
+                        <MahjongTile tile={meld[1]} isKan /> {/* Show middle two tiles */}
+                        <MahjongTile tile={meld[2]} isKan />
+                        <MahjongTile tile="back" isKan />
                     </div>
                 ))}
             </div>
 
+            {/* Main Hand */}
             <div className="flex justify-center items-end space-x-1">
                 {hand.map((tile, index) => (
                     <MahjongTile
@@ -37,13 +41,14 @@ const HandDisplay: React.FC<HandDisplayProps> = ({ hand, drawnTile, kanMelds, do
                 ))}
             </div>
 
+            {/* Drawn Tile */}
             <div className="ml-4">
                 {drawnTile && (
                     <MahjongTile
                         tile={drawnTile}
                         isGlow={dora.includes(drawnTile)}
                         isRiichiPossible={isRiichiDeclaration && validRiichiDiscards.has(hand.length)}
-                        onClick={() => onTileClick(hand.length, true)}
+                        onClick={() => onTileClick(hand.length, true)} // Pass hand.length as index for drawn tile
                     />
                 )}
             </div>
@@ -52,3 +57,4 @@ const HandDisplay: React.FC<HandDisplayProps> = ({ hand, drawnTile, kanMelds, do
 };
 
 export default HandDisplay;
+

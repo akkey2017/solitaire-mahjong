@@ -10,13 +10,19 @@ interface WinModalProps {
     uraDoraIndicators: Tile[];
     isRiichi: boolean;
     onClose: () => void;
+    onRestart: () => void; // Add restart function prop
 }
 
-const WinModal: React.FC<WinModalProps> = ({ result, hand, doraIndicators, uraDoraIndicators, isRiichi, onClose }) => {
+const WinModal: React.FC<WinModalProps> = ({ result, hand, doraIndicators, uraDoraIndicators, isRiichi, onClose, onRestart }) => {
     if (!result) return null;
 
     const { yaku, han, fu, isYakuman } = result;
     const score = calculateScore(han, fu, isYakuman);
+
+    const handleRestartClick = () => {
+        onRestart(); // Call the restart function passed from parent
+        onClose(); // Close the modal
+    }
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50" onClick={onClose}>
@@ -61,9 +67,21 @@ const WinModal: React.FC<WinModalProps> = ({ result, hand, doraIndicators, uraDo
                         <div className="text-sm">親: <span className="font-mono">{score.oya_ron}</span> (<span className="font-mono">{score.oya_tsumo}</span>)</div>
                     </div>
                 </div>
+
+                {/* Add New Game Button */}
+                <div className="mt-4 text-center">
+                    <button
+                        onClick={handleRestartClick}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg shadow-md transition-transform transform hover:scale-105"
+                    >
+                        新しく始める
+                    </button>
+                </div>
+
             </div>
         </div>
     );
 };
 
 export default WinModal;
+
