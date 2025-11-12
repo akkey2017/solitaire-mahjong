@@ -277,7 +277,8 @@ export default function Home() {
       const result = logic.checkYaku(fullHand, gameState.drawnTile, gameState);
       if (result && result.yaku.length > 0) {
         const score = logic.calculateScore(result.han, result.fu, result.isYakuman);
-        const pointsWon = score.ko_tsumo; // Use ko_tsumo for scoring
+        // Parse ko_tsumo to get points (e.g., "4000/2000" -> 4000, "16000 All" -> 16000)
+        const pointsWon = parseInt(score.ko_tsumo.split(/[\/\s]/)[0], 10);
         
         setGameState(prev => ({ 
           ...prev, 
