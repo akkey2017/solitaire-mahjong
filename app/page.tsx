@@ -363,6 +363,13 @@ export default function Home() {
     setShowVictory(false);
   }, []);
 
+  const handleResetStats = useCallback(() => {
+    if (confirm('統計情報をリセットしますか？この操作は取り消せません。')) {
+      setStats(initialStats);
+      localStorage.removeItem('mahjong-stats');
+    }
+  }, []);
+
   const { hand, drawnTile, discards, wall, dora, kanMelds, gameMessage, winResult, doraIndicators, uraDoraIndicators, isRiichiDeclaration, validRiichiDiscards, currentScore, targetScore } = gameState;
 
   return (
@@ -387,7 +394,7 @@ export default function Home() {
         <p id="game-message" className="text-amber-300 font-bold h-6">{gameMessage}</p>
       </header>
 
-      <GameStats stats={stats} currentScore={currentScore} targetScore={targetScore} />
+      <GameStats stats={stats} currentScore={currentScore} targetScore={targetScore} onResetStats={handleResetStats} />
 
       <ActionButtons
         onKan={handleKan}
