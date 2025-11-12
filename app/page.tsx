@@ -302,10 +302,7 @@ export default function Home() {
           };
         });
 
-        // Check for victory
-        if (gameState.currentScore + pointsWon >= settings.targetScore) {
-          setTimeout(() => setShowVictory(true), 1500);
-        }
+        // Don't show victory modal immediately - it will show after WinModal is closed
       } else {
         setGameState(prev => ({ ...prev, gameMessage: 'アガリ形ですが、役がありません。', winResult: null }));
       }
@@ -431,7 +428,13 @@ export default function Home() {
           doraIndicators={doraIndicators}
           uraDoraIndicators={uraDoraIndicators}
           isRiichi={gameState.isRiichi}
-          onClose={() => setGameState(prev => ({ ...prev, winResult: null }))}
+          onClose={() => {
+            setGameState(prev => ({ ...prev, winResult: null }));
+            // After closing WinModal, check if victory should be shown
+            if (currentScore >= targetScore) {
+              setTimeout(() => setShowVictory(true), 300);
+            }
+          }}
           onRestart={startGame}
         />
       )}
@@ -449,7 +452,7 @@ export default function Home() {
       />
 
       <VictoryModal
-        isOpen={showVictory}
+        isOpen={showVictory && !winResult}
         currentScore={currentScore}
         targetScore={targetScore}
         stats={stats}
