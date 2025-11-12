@@ -7,7 +7,11 @@ import DiscardPile from '../components/DiscardPile';
 import HandDisplay from '../components/HandDisplay';
 import WangpaiDisplay from '../components/WangpaiDisplay';
 import WinModal from '../components/WinModal';
-import { GameState, Tile } from '../types/mahjong';
+import GameStats from '../components/GameStats';
+import SettingsModal, { GameSettings } from '../components/SettingsModal';
+import HelpModal from '../components/HelpModal';
+import VictoryModal from '../components/VictoryModal';
+import { GameState, Tile, GameStatistics } from '../types/mahjong';
 
 const initialGameState: GameState = {
   wall: [], hand: [], discards: [], wangpai: [], rinshanTiles: [],
@@ -15,11 +19,64 @@ const initialGameState: GameState = {
   drawnTile: null, isGameOver: true, isRiichi: false, isIppatsu: false,
   isRinshan: false, isRiichiDeclaration: false, validRiichiDiscards: new Set(),
   gameMessage: 'ボタンを押してゲームを開始してください。', winResult: null,
+  currentScore: 0, targetScore: 1000,
+};
+
+const initialStats: GameStatistics = {
+  totalGames: 0,
+  wins: 0,
+  losses: 0,
+  totalScore: 0,
+  highScore: 0,
+  consecutiveWins: 0,
+  maxConsecutiveWins: 0,
 };
 
 export default function Home() {
-  const [gameState, setGameState] = useState<GameState>(initialGameState);
-  const [validRiichiKanTile, setValidRiichiKanTile] = useState<Tile | null>(null); // State for valid Kan during Riichi
+  // Load stats and settings from localStorage using lazy initializer
+  const [stats, setStats] = useState<GameStatistics>(() => {
+    if (typeof window !== 'undefined') {
+      const savedStats = localStorage.getItem('mahjong-stats');
+      if (savedStats) {
+        return JSON.parse(savedStats);
+      }
+    }
+    return initialStats;
+  });
+
+  const [settings, setSettings] = useState<GameSettings>(() => {
+    if (typeof window !== 'undefined') {
+      const savedSettings = localStorage.getItem('mahjong-settings');
+      if (savedSettings) {
+        return JSON.parse(savedSettings);
+      }
+    }
+    return { targetScore: 1000, difficulty: 'normal' };
+  });
+
+  const [gameState, setGameState] = useState<GameState>(() => ({
+    ...initialGameState,
+    targetScore: settings.targetScore,
+  }));
+
+  const [validRiichiKanTile, setValidRiichiKanTile] = useState<Tile | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const [showVictory, setShowVictory] = useState(false);
+
+  // Save stats to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('mahjong-stats', JSON.stringify(stats));
+    }
+  }, [stats]);
+
+  // Save settings to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('mahjong-settings', JSON.stringify(settings));
+    }
+  }, [settings]);
 
   const startGame = useCallback(() => {
     const initialState = logic.initializeGame();
@@ -28,16 +85,39 @@ export default function Home() {
       dora: logic.calculateDoraTiles(initialState.doraIndicators),
       gameMessage: 'ゲーム開始！',
       winResult: null,
+      currentScore: gameState.currentScore,
+      targetScore: settings.targetScore,
     });
-    setValidRiichiKanTile(null); // Reset on new game
-  }, []);
+    setValidRiichiKanTile(null);
+  }, [gameState.currentScore, settings.targetScore]);
+
+  const resetGame = useCallback(() => {
+    const initialState = logic.initializeGame();
+    setGameState({
+      ...initialState,
+      dora: logic.calculateDoraTiles(initialState.doraIndicators),
+      gameMessage: 'ゲーム開始！',
+      winResult: null,
+      currentScore: 0,
+      targetScore: settings.targetScore,
+    });
+    setValidRiichiKanTile(null);
+    setShowVictory(false);
+  }, [settings.targetScore]);
 
 
   const drawTile = useCallback(() => {
     setGameState(prev => {
       if (prev.isGameOver || prev.drawnTile) return prev;
       if (prev.wall.length === 0) {
-        return { ...prev, isGameOver: true, gameMessage: '流局です。' };
+        // Handle draw - update statistics
+        setStats(prevStats => ({
+          ...prevStats,
+          totalGames: prevStats.totalGames + 1,
+          losses: prevStats.losses + 1,
+          consecutiveWins: 0, // Reset consecutive wins on draw
+        }));
+        return { ...prev, isGameOver: true, gameMessage: '流局です。次のゲームを開始してください。' };
       }
       const { newWall, tile } = logic.drawFromWall(prev.wall);
       return { ...prev, wall: newWall, drawnTile: tile, isRinshan: false };
@@ -191,20 +271,47 @@ export default function Home() {
 
 
   const handleTsumo = useCallback(() => {
-    // ... (logic remains the same)
     if (!gameState.drawnTile) return;
     const fullHand = [...gameState.hand, gameState.drawnTile];
     if (logic.isWinningHand(fullHand, gameState.kanMelds)) {
       const result = logic.checkYaku(fullHand, gameState.drawnTile, gameState);
       if (result && result.yaku.length > 0) {
-        setGameState(prev => ({ ...prev, isGameOver: true, winResult: result, gameMessage: 'ツモ！' }));
+        const score = logic.calculateScore(result.han, result.fu, result.isYakuman);
+        const pointsWon = score.ko_tsumo; // Use ko_tsumo for scoring
+        
+        setGameState(prev => ({ 
+          ...prev, 
+          isGameOver: true, 
+          winResult: result, 
+          gameMessage: 'ツモ！',
+          currentScore: prev.currentScore + pointsWon
+        }));
+
+        // Update statistics
+        setStats(prev => {
+          const newConsecutiveWins = prev.consecutiveWins + 1;
+          return {
+            ...prev,
+            totalGames: prev.totalGames + 1,
+            wins: prev.wins + 1,
+            totalScore: prev.totalScore + pointsWon,
+            highScore: Math.max(prev.highScore, pointsWon),
+            consecutiveWins: newConsecutiveWins,
+            maxConsecutiveWins: Math.max(prev.maxConsecutiveWins, newConsecutiveWins),
+          };
+        });
+
+        // Check for victory
+        if (gameState.currentScore + pointsWon >= settings.targetScore) {
+          setTimeout(() => setShowVictory(true), 1500);
+        }
       } else {
         setGameState(prev => ({ ...prev, gameMessage: 'アガリ形ですが、役がありません。', winResult: null }));
       }
     } else {
       setGameState(prev => ({ ...prev, gameMessage: 'まだアガれません。' }))
     }
-  }, [gameState]);
+  }, [gameState, settings.targetScore]);
 
   const handleTileClick = useCallback((index: number, isDrawnClick = false) => {
     // --- Riichi Specific Logic ---
@@ -246,15 +353,41 @@ export default function Home() {
     discardTile(index, isDrawnClick);
 
   }, [gameState, discardTile, validRiichiKanTile]);
-  const { hand, drawnTile, discards, wall, dora, kanMelds, gameMessage, winResult, doraIndicators, uraDoraIndicators, isRiichiDeclaration, validRiichiDiscards } = gameState;
+
+  const handleApplySettings = useCallback((newSettings: GameSettings) => {
+    setSettings(newSettings);
+    setGameState(prev => ({ ...prev, targetScore: newSettings.targetScore }));
+  }, []);
+
+  const handleContinueAfterVictory = useCallback(() => {
+    setShowVictory(false);
+  }, []);
+
+  const { hand, drawnTile, discards, wall, dora, kanMelds, gameMessage, winResult, doraIndicators, uraDoraIndicators, isRiichiDeclaration, validRiichiDiscards, currentScore, targetScore } = gameState;
 
   return (
     <main className="mahjong-table text-white container mx-auto p-4 flex flex-col min-h-screen">
       <header className="text-center mb-2">
-        <h1 className="text-3xl font-bold">一人麻雀</h1>
+        <div className="flex justify-between items-center mb-2">
+          <button
+            onClick={() => setShowHelp(true)}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-3 rounded text-sm"
+          >
+            ？ヘルプ
+          </button>
+          <h1 className="text-3xl font-bold">一人麻雀</h1>
+          <button
+            onClick={() => setShowSettings(true)}
+            className="bg-gray-600 hover:bg-gray-700 text-white font-bold py-1 px-3 rounded text-sm"
+          >
+            ⚙ 設定
+          </button>
+        </div>
         <p id="wall-count" className="text-lg mt-1">山の残り牌: {wall.length}</p>
         <p id="game-message" className="text-amber-300 font-bold h-6">{gameMessage}</p>
       </header>
+
+      <GameStats stats={stats} currentScore={currentScore} targetScore={targetScore} />
 
       <ActionButtons
         onKan={handleKan}
@@ -262,7 +395,7 @@ export default function Home() {
         onTsumo={handleTsumo}
         onRestart={startGame}
         gameState={gameState}
-        validRiichiKanTile={validRiichiKanTile} // Pass down the valid Kan tile
+        validRiichiKanTile={validRiichiKanTile}
       />
 
       <WangpaiDisplay doraIndicators={doraIndicators} />
@@ -285,7 +418,7 @@ export default function Home() {
       {winResult && (
         <WinModal
           result={winResult}
-          hand={drawnTile ? [...hand, drawnTile] : hand} // Show winning tile in modal hand
+          hand={drawnTile ? [...hand, drawnTile] : hand}
           kanMelds={kanMelds}
           doraIndicators={doraIndicators}
           uraDoraIndicators={uraDoraIndicators}
@@ -294,6 +427,27 @@ export default function Home() {
           onRestart={startGame}
         />
       )}
+
+      <SettingsModal
+        isOpen={showSettings}
+        currentSettings={settings}
+        onClose={() => setShowSettings(false)}
+        onApply={handleApplySettings}
+      />
+
+      <HelpModal
+        isOpen={showHelp}
+        onClose={() => setShowHelp(false)}
+      />
+
+      <VictoryModal
+        isOpen={showVictory}
+        currentScore={currentScore}
+        targetScore={targetScore}
+        stats={stats}
+        onRestart={resetGame}
+        onContinue={handleContinueAfterVictory}
+      />
     </main>
   );
 }

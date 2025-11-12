@@ -53,8 +53,7 @@ const countTiles = (tiles: Tile[]): { [key: string]: number } => {
 };
 
 // --- Game Initialization and Drawing ---
-export const initializeGame = (): Omit<GameState, 'dora' | 'gameMessage' | 'winResult'> => {
-    // ... (same as before)
+export const initializeGame = (): Omit<GameState, 'dora' | 'gameMessage' | 'winResult' | 'currentScore' | 'targetScore'> => {
     const wall: Tile[] = [];
     SUITS.forEach(suit => {
         const limit = (suit === 'z') ? 7 : 9;
