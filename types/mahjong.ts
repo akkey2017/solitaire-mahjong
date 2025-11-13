@@ -20,6 +20,16 @@ export interface ParsedHand {
     melds: Meld[];
 }
 
+export interface GameStatistics {
+    totalGames: number;
+    wins: number;
+    losses: number;
+    totalScore: number;
+    highScore: number;
+    consecutiveWins: number;
+    maxConsecutiveWins: number;
+}
+
 export interface GameState {
     wall: Tile[];
     hand: Tile[];
@@ -39,4 +49,6 @@ export interface GameState {
     validRiichiDiscards: Set<number>;
     gameMessage: string;
     winResult: YakuResult | null;
+    currentScore: number;
+    targetScore: number;
 }
